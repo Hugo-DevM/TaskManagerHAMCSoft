@@ -62,7 +62,7 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    await fetch("/auth/logout", { method: "POST" });
     window.location.href = "/auth/login";
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

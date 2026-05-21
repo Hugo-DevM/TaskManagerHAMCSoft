@@ -213,8 +213,8 @@ export default async function DashboardPage() {
                     <div key={project.id} className="bg-accent/40 rounded-lg p-4 border border-border/50">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-sm font-medium text-foreground truncate">{project.name}</p>
-                        <Badge variant="outline" className={cn("text-xs border ml-2 shrink-0", PROJECT_STATUS_CONFIG[project.status].bgColor)}>
-                          {PROJECT_STATUS_CONFIG[project.status].label}
+                        <Badge variant="outline" className={cn("text-xs border ml-2 shrink-0", PROJECT_STATUS_CONFIG[project.status]?.bgColor ?? "bg-zinc-500/10 text-zinc-400 border-zinc-500/20")}>
+                          {PROJECT_STATUS_CONFIG[project.status]?.label ?? project.status}
                         </Badge>
                       </div>
                       <div className="h-1.5 bg-card rounded-full overflow-hidden mb-2">

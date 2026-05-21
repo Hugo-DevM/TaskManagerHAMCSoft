@@ -54,12 +54,7 @@ export function useProjects(): UseProjectsReturn {
 
         const projectQuery = supabase
           .from("projects")
-          .select(
-            `
-            *,
-            creator:profiles!projects_created_by_fkey(*)
-          `
-          )
+          .select(`*, creator:profiles!projects_created_by_fkey(*), client:clients(*)`)
           .order("created_at", { ascending: false });
 
         const taskQuery = supabase.from("tasks").select("project_id, status");
@@ -95,10 +90,7 @@ export function useProjects(): UseProjectsReturn {
           if (!task.project_id) return;
           if (!tasksByProject[task.project_id]) {
             tasksByProject[task.project_id] = {
-              total: 0,
-              completed: 0,
-              pending: 0,
-              inProgress: 0,
+              total: 0, completed: 0, pending: 0, inProgress: 0,
             };
           }
           tasksByProject[task.project_id].total++;
@@ -109,14 +101,12 @@ export function useProjects(): UseProjectsReturn {
 
         const withStats: ProjectWithStats[] = rawProjects.map((p: Record<string, unknown>) => {
           const stats = tasksByProject[p.id as string] ?? {
-            total: 0,
-            completed: 0,
-            pending: 0,
-            inProgress: 0,
+            total: 0, completed: 0, pending: 0, inProgress: 0,
           };
           return {
             ...(p as unknown as Project),
             creator: (p.creator as ProjectWithStats["creator"]) ?? null,
+            client: (p.client as ProjectWithStats["client"]) ?? null,
             task_count: stats.total,
             completed_task_count: stats.completed,
           };
@@ -194,7 +184,18 @@ export function useProjects(): UseProjectsReturn {
           {
             name: input.name,
             description: input.description ?? null,
+            client_id: input.client_id ?? null,
+            type: input.type ?? null,
             status: input.status,
+            priority: input.priority ?? "medium",
+            start_date: input.start_date ?? null,
+            due_date: input.due_date ?? null,
+            estimated_hours: input.estimated_hours ?? null,
+            budget: input.budget ?? null,
+            repository_url: input.repository_url ?? null,
+            staging_url: input.staging_url ?? null,
+            production_url: input.production_url ?? null,
+            progress: input.progress ?? 0,
             created_by: input.created_by,
           },
         ])

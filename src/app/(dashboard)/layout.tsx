@@ -11,7 +11,7 @@ export default async function DashboardLayout({
   await getAuthenticatedUser();
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen overflow-hidden bg-background">
       <VisibilityRefresher />
       <Sidebar />
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">

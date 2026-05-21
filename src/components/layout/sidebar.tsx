@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -10,7 +11,6 @@ import {
   FolderKanban,
   LogOut,
   Users,
-  Zap,
   Bug,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -65,16 +65,11 @@ export function Sidebar() {
   useAuthSync();
 
   return (
-    <aside className="flex flex-col w-60 min-h-screen bg-card border-r border-border">
+    <aside className="flex flex-col w-60 h-full bg-card border-r border-border">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600">
-          <Zap className="w-4 h-4 text-white" />
-        </div>
-        <div>
-          <p className="text-sm font-bold text-foreground leading-none">HAMCSoft</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Task Manager</p>
-        </div>
+      <div className="flex items-center justify-center gap-2 px-4 py-1 border-b border-border">
+        <Image src="/logo-icon.png" alt="HAMCSoft" width={22} height={22} className="shrink-0" />
+        <Image src="/logo-letras.png" alt="HAMCSoft" width={90} height={20} className="shrink-0" />
       </div>
 
       {/* Navigation */}

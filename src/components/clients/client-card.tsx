@@ -1,6 +1,20 @@
 "use client";
 
-import { Clock, FolderOpen, Mail, MoreHorizontal, Pencil, Phone, Trash2, User } from "lucide-react";
+import Link from "next/link";
+import {
+  Clock,
+  ExternalLink,
+  Mail,
+  MoreHorizontal,
+  Pencil,
+  Phone,
+  Trash2,
+  User,
+  Building2,
+  TrendingUp,
+  FolderKanban,
+  ArrowRight,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,90 +24,70 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { ClientStatus, ClientWithRelations } from "@/lib/types";
-import { cn, formatDueDate } from "@/lib/utils";
-import { parseISO, isPast, isToday } from "date-fns";
+import type { Client } from "@/lib/types";
+import {
+  cn,
+  formatDueDate,
+  formatCurrency,
+  CLIENT_STATUS_CONFIG,
+  CLIENT_PRIORITY_CONFIG,
+  CLIENT_ACTION_TYPE_LABEL,
+  isDateOverdue,
+} from "@/lib/utils";
 
 interface ClientCardProps {
-  client: ClientWithRelations;
-  onEdit: (client: ClientWithRelations) => void;
+  client: Client & { project_count?: number };
+  onEdit: (client: Client) => void;
   onDelete: (id: string) => void;
 }
 
-const STATUS_BAR_COLOR: Record<ClientStatus, string> = {
-  prospecto: "bg-zinc-400",
-  contactado: "bg-blue-400",
-  en_negociacion: "bg-yellow-400",
-  propuesta_enviada: "bg-indigo-400",
-  cerrado: "bg-emerald-400",
-  perdido: "bg-red-400",
-};
-
-const STATUS_BADGE_COLOR: Record<ClientStatus, string> = {
-  prospecto: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-  contactado: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  en_negociacion: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  propuesta_enviada: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-  cerrado: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  perdido: "bg-red-500/10 text-red-400 border-red-500/20",
-};
-
-const STATUS_LABEL: Record<ClientStatus, string> = {
-  prospecto: "Prospecto",
-  contactado: "Contactado",
-  en_negociacion: "En negociación",
-  propuesta_enviada: "Propuesta enviada",
-  cerrado: "Cerrado",
-  perdido: "Perdido",
-};
-
-const ACTION_TYPE_LABEL: Record<string, string> = {
-  llamada: "Llamada",
-  reunion: "Reunión",
-  entrega: "Entrega",
-  seguimiento: "Seguimiento",
-  propuesta: "Propuesta",
-  otro: "Otro",
-};
-
-function isActionOverdue(dateStr: string, status: ClientStatus): boolean {
-  if (status === "cerrado" || status === "perdido") return false;
-  const date = parseISO(dateStr);
-  return isPast(date) && !isToday(date);
-}
-
 export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
-  const hasContactInfo = client.contact_name || client.email || client.phone;
+  const statusCfg = CLIENT_STATUS_CONFIG[client.status];
+  const priorityCfg = CLIENT_PRIORITY_CONFIG[client.priority ?? "medium"];
   const hasNextAction = !!client.next_action_date;
-  const actionOverdue = hasNextAction
-    ? isActionOverdue(client.next_action_date!, client.status)
-    : false;
+  const actionOverdue =
+    hasNextAction &&
+    isDateOverdue(client.next_action_date) &&
+    client.status !== "cerrado_ganado" &&
+    client.status !== "cerrado_perdido";
+
+  const isClosed =
+    client.status === "cerrado_ganado" || client.status === "cerrado_perdido";
 
   return (
-    <div className="group relative bg-card border border-border rounded-xl hover:border-border/80 hover:shadow-sm transition-all duration-150 overflow-hidden">
+    <div className="group relative bg-card border border-border rounded-xl hover:border-border/60 hover:shadow-md transition-all duration-150 overflow-hidden">
       {/* Status color bar */}
-      <div
-        className={cn(
-          "absolute left-0 top-0 bottom-0 w-[3px] rounded-r-none",
-          STATUS_BAR_COLOR[client.status]
-        )}
-      />
+      <div className={cn("absolute left-0 top-0 bottom-0 w-[3px]", statusCfg.barColor)} />
 
-      <div className="pl-4 pr-4 pt-4 pb-4">
-        {/* Header row */}
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <h3 className="text-sm font-medium text-foreground leading-snug flex-1">
-            {client.name}
-          </h3>
+      <div className="pl-4 pr-3 pt-3.5 pb-3.5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2 mb-2.5">
+          <div className="flex-1 min-w-0">
+            <Link
+              href={`/clientes/${client.id}`}
+              className="text-sm font-semibold text-foreground hover:text-indigo-400 transition-colors leading-snug block truncate"
+            >
+              {client.company_name ?? client.name}
+            </Link>
+            {client.industry && (
+              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                <Building2 className="w-3 h-3 shrink-0" />
+                <span className="truncate">{client.industry}</span>
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Priority dot */}
+            <div
+              className={cn("w-2 h-2 rounded-full shrink-0", priorityCfg.dotColor)}
+              title={`Prioridad ${priorityCfg.label}`}
+            />
             <Badge
               variant="outline"
-              className={cn(
-                "text-xs px-1.5 py-0 border",
-                STATUS_BADGE_COLOR[client.status]
-              )}
+              className={cn("text-[10px] px-1.5 py-0 border whitespace-nowrap", statusCfg.bgColor)}
             >
-              {STATUS_LABEL[client.status]}
+              {statusCfg.label}
             </Badge>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -105,7 +99,13 @@ export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
                   <MoreHorizontal className="w-3.5 h-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href={`/clientes/${client.id}`} className="flex items-center">
+                    <ExternalLink className="w-3.5 h-3.5 mr-2" />
+                    Ver detalle
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit(client)}>
                   <Pencil className="w-3.5 h-3.5 mr-2" />
                   Editar cliente
@@ -123,73 +123,92 @@ export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
           </div>
         </div>
 
-        {/* Contact info row */}
-        {hasContactInfo && (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2.5">
-            {client.contact_name && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
-                <User className="w-3 h-3 shrink-0" />
-                <span className="truncate">{client.contact_name}</span>
-              </div>
-            )}
-            {client.email && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
-                <Mail className="w-3 h-3 shrink-0" />
-                <span className="truncate">{client.email}</span>
-              </div>
-            )}
-            {client.phone && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
-                <Phone className="w-3 h-3 shrink-0" />
-                <span className="truncate">{client.phone}</span>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Contact info */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2.5">
+          {client.contact_name && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
+              <User className="w-3 h-3 shrink-0" />
+              <span className="truncate">{client.contact_name}</span>
+            </div>
+          )}
+          {client.email && (
+            <a
+              href={`mailto:${client.email}`}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground min-w-0 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Mail className="w-3 h-3 shrink-0" />
+              <span className="truncate">{client.email}</span>
+            </a>
+          )}
+          {client.phone && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
+              <Phone className="w-3 h-3 shrink-0" />
+              <span className="truncate">{client.phone}</span>
+            </div>
+          )}
+        </div>
 
-        {/* Next action row */}
-        {hasNextAction && (
+        {/* Mid row: value + projects */}
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          {client.estimated_value != null && (
+            <div className="flex items-center gap-1 text-xs">
+              <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span className="font-medium text-emerald-400">
+                {formatCurrency(client.estimated_value)}
+              </span>
+            </div>
+          )}
+          {(client.project_count ?? 0) > 0 && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
+              <FolderKanban className="w-3 h-3 shrink-0" />
+              <span>
+                {client.project_count}{" "}
+                {client.project_count === 1 ? "proyecto" : "proyectos"}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Next action */}
+        {hasNextAction && !isClosed && (
           <div
             className={cn(
-              "flex items-center gap-1.5 text-xs mb-2",
+              "flex items-center gap-1.5 text-xs",
               actionOverdue ? "text-red-400" : "text-muted-foreground"
             )}
           >
             <Clock className="w-3 h-3 shrink-0" />
             {client.next_action_type && (
               <span className="font-medium">
-                {ACTION_TYPE_LABEL[client.next_action_type]}
+                {CLIENT_ACTION_TYPE_LABEL[client.next_action_type]}
               </span>
             )}
             <span>{formatDueDate(client.next_action_date)}</span>
+            {actionOverdue && (
+              <span className="font-medium">· Vencida</span>
+            )}
           </div>
         )}
 
-        {/* Linked project */}
-        {client.project && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-            <FolderOpen className="w-3 h-3 shrink-0" />
-            <span className="truncate">{client.project.name}</span>
-          </div>
-        )}
-
-        {/* Requirements */}
-        {client.requirements && (
-          <p className="text-xs text-muted-foreground italic mb-1.5 line-clamp-1">
-            {client.requirements.length > 60
-              ? client.requirements.slice(0, 60) + "..."
-              : client.requirements}
-          </p>
-        )}
-
-        {/* Notes */}
+        {/* Notes snippet */}
         {client.notes && (
-          <p className="text-xs text-muted-foreground line-clamp-1">
-            {client.notes.length > 60
-              ? client.notes.slice(0, 60) + "..."
-              : client.notes}
+          <p className="text-xs text-muted-foreground line-clamp-1 mt-1.5 italic">
+            {client.notes.slice(0, 70)}
+            {client.notes.length > 70 ? "..." : ""}
           </p>
         )}
+
+        {/* Footer: Ver detalle */}
+        <div className="flex items-center justify-end mt-2.5 pt-2.5 border-t border-border/40">
+          <Link
+            href={`/clientes/${client.id}`}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-indigo-400 transition-colors"
+          >
+            Ver detalle
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
       </div>
     </div>
   );

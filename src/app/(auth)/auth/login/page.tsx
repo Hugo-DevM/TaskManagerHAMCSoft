@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Zap, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,11 +58,8 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 mb-4 shadow-lg shadow-indigo-600/25">
-            <Zap className="w-6 h-6 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">HAMCSoft Tasks</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <Image src="/logo-login.png" alt="HAMCSoft" width={500} height={200} className="mb-3 w-[140px] h-auto" />
+          <p className="text-sm text-muted-foreground">
             Inicia sesión para continuar
           </p>
         </div>

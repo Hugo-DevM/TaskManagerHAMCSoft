@@ -12,9 +12,106 @@ export type TaskStatus =
   | "En revisión"
   | "Completado";
 
-export type ProjectStatus = "activo" | "pausado" | "completado" | "archivado";
+// ---- Project Types ----
 
-// ---- Database Row Types (mirror Supabase tables) ----
+export type ProjectStatus =
+  | "planeacion"
+  | "diseno"
+  | "desarrollo"
+  | "testing"
+  | "correcciones"
+  | "deploy"
+  | "mantenimiento"
+  | "finalizado"
+  | "pausado";
+
+export type ProjectType =
+  | "landing_page"
+  | "ecommerce"
+  | "sistema_pos"
+  | "crm"
+  | "automatizacion"
+  | "branding"
+  | "otro";
+
+export type ProjectPriority = "low" | "medium" | "high";
+
+// ---- Client Types ----
+
+export type ClientStatus =
+  | "prospecto"
+  | "contactado"
+  | "reunion_agendada"
+  | "en_negociacion"
+  | "propuesta_enviada"
+  | "esperando_respuesta"
+  | "cerrado_ganado"
+  | "cerrado_perdido";
+
+export type ClientActionType =
+  | "llamada"
+  | "reunion"
+  | "entrega"
+  | "seguimiento"
+  | "propuesta"
+  | "otro";
+
+export type ClientPriority = "low" | "medium" | "high";
+
+export type ClientServiceInterest =
+  | "landing_page"
+  | "ecommerce"
+  | "sistema_pos"
+  | "crm"
+  | "automatizacion"
+  | "branding"
+  | "otro";
+
+export type ClientLeadSource =
+  | "facebook"
+  | "instagram"
+  | "tiktok"
+  | "referido"
+  | "web"
+  | "manual"
+  | "otro";
+
+// ---- Activity Types ----
+
+export type ClientActivityType =
+  | "nota"
+  | "llamada"
+  | "reunion"
+  | "propuesta_enviada"
+  | "seguimiento"
+  | "estado_cambiado"
+  | "proyecto_vinculado"
+  | "documento_agregado"
+  | "otro";
+
+export type ProjectActivityType =
+  | "nota"
+  | "deploy"
+  | "bug_resuelto"
+  | "feature_completada"
+  | "estado_cambiado"
+  | "cliente_aprobo"
+  | "entrega"
+  | "reunion"
+  | "otro";
+
+export type DocumentType =
+  | "proposal"
+  | "contract"
+  | "invoice"
+  | "nda"
+  | "brief"
+  | "requirements"
+  | "other";
+
+export type ProjectFileType = "design" | "document" | "image" | "video" | "code" | "other";
+
+// ---- Database Row Types ----
 
 export interface Profile {
   id: string;
@@ -27,9 +124,22 @@ export interface Profile {
 
 export interface Project {
   id: string;
+  client_id: string | null;
   name: string;
   description: string | null;
+  type: ProjectType | null;
   status: ProjectStatus;
+  priority: ProjectPriority;
+  start_date: string | null;
+  due_date: string | null;
+  estimated_hours: number | null;
+  tracked_hours: number;
+  budget: number | null;
+  final_cost: number | null;
+  progress: number;
+  repository_url: string | null;
+  staging_url: string | null;
+  production_url: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -49,6 +159,76 @@ export interface Task {
   updated_at: string;
 }
 
+export interface Client {
+  id: string;
+  company_name: string;
+  contact_name: string | null;
+  email: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  website: string | null;
+  industry: string | null;
+  status: ClientStatus;
+  priority: ClientPriority;
+  estimated_value: number | null;
+  service_interest: ClientServiceInterest | null;
+  lead_source: ClientLeadSource | null;
+  next_action_type: ClientActionType | null;
+  next_action_date: string | null;
+  next_action_notes: string | null;
+  last_contact_at: string | null;
+  notes: string | null;
+  // Legacy fields (kept for DB compat, not used in new UI)
+  name?: string;
+  project_id?: string | null;
+  requirements?: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClientActivity {
+  id: string;
+  client_id: string;
+  type: ClientActivityType;
+  message: string;
+  metadata: Record<string, unknown> | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface ClientDocument {
+  id: string;
+  client_id: string;
+  type: DocumentType;
+  name: string;
+  file_url: string | null;
+  notes: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
+export interface ProjectActivity {
+  id: string;
+  project_id: string;
+  type: ProjectActivityType;
+  message: string;
+  metadata: Record<string, unknown> | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface ProjectFile {
+  id: string;
+  project_id: string;
+  name: string;
+  type: ProjectFileType;
+  file_url: string | null;
+  notes: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
 // ---- Joined / Extended Types ----
 
 export interface TaskWithRelations extends Task {
@@ -58,8 +238,26 @@ export interface TaskWithRelations extends Task {
 
 export interface ProjectWithStats extends Project {
   creator: Profile | null;
+  client: Client | null;
   task_count: number;
   completed_task_count: number;
+}
+
+export interface ClientWithRelations extends Client {
+  projects?: ProjectWithStats[];
+  project_count?: number;
+}
+
+export interface ClientActivityWithProfile extends ClientActivity {
+  creator: Profile | null;
+}
+
+export interface ProjectActivityWithProfile extends ProjectActivity {
+  creator: Profile | null;
+}
+
+export interface ClientDocumentWithProfile extends ClientDocument {
+  uploader: Profile | null;
 }
 
 // ---- Form Input Types ----
@@ -81,11 +279,78 @@ export interface UpdateTaskInput extends Partial<CreateTaskInput> {
 export interface CreateProjectInput {
   name: string;
   description?: string;
+  client_id?: string;
+  type?: ProjectType;
   status: ProjectStatus;
+  priority?: ProjectPriority;
+  start_date?: string;
+  due_date?: string;
+  estimated_hours?: number;
+  budget?: number;
+  repository_url?: string;
+  staging_url?: string;
+  production_url?: string;
+  progress?: number;
 }
 
 export interface UpdateProjectInput extends Partial<CreateProjectInput> {
   id: string;
+  tracked_hours?: number;
+  final_cost?: number;
+}
+
+export interface CreateClientInput {
+  company_name: string;
+  contact_name?: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  website?: string;
+  industry?: string;
+  status: ClientStatus;
+  priority?: ClientPriority;
+  estimated_value?: number;
+  service_interest?: ClientServiceInterest;
+  lead_source?: ClientLeadSource;
+  next_action_type?: ClientActionType;
+  next_action_date?: string;
+  next_action_notes?: string;
+  notes?: string;
+}
+
+export interface UpdateClientInput extends Partial<CreateClientInput> {
+  id: string;
+  last_contact_at?: string | null;
+}
+
+export interface CreateClientActivityInput {
+  client_id: string;
+  type: ClientActivityType;
+  message: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface CreateProjectActivityInput {
+  project_id: string;
+  type: ProjectActivityType;
+  message: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface CreateClientDocumentInput {
+  client_id: string;
+  type: DocumentType;
+  name: string;
+  file_url?: string;
+  notes?: string;
+}
+
+export interface CreateProjectFileInput {
+  project_id: string;
+  name: string;
+  type: ProjectFileType;
+  file_url?: string;
+  notes?: string;
 }
 
 // ---- Dashboard Stats Types ----
@@ -146,6 +411,7 @@ export interface Bug {
   steps_to_reproduce: string | null;
   assigned_to: string | null;
   reported_by: string | null;
+  project_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -163,6 +429,7 @@ export interface CreateBugInput {
   system_name?: string;
   steps_to_reproduce?: string;
   assigned_to?: string;
+  project_id?: string;
 }
 
 export interface UpdateBugInput extends Partial<CreateBugInput> {
@@ -181,62 +448,4 @@ export interface AuthUser {
   id: string;
   email: string;
   profile: Profile | null;
-}
-
-// ---- Client (CRM) Types ----
-
-export type ClientStatus =
-  | "prospecto"
-  | "contactado"
-  | "en_negociacion"
-  | "propuesta_enviada"
-  | "cerrado"
-  | "perdido";
-
-export type ClientActionType =
-  | "llamada"
-  | "reunion"
-  | "entrega"
-  | "seguimiento"
-  | "propuesta"
-  | "otro";
-
-export interface Client {
-  id: string;
-  name: string;
-  contact_name: string | null;
-  email: string | null;
-  phone: string | null;
-  status: ClientStatus;
-  next_action_type: ClientActionType | null;
-  next_action_date: string | null;
-  next_action_notes: string | null;
-  project_id: string | null;
-  requirements: string | null;
-  notes: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ClientWithRelations extends Client {
-  project: Project | null;
-}
-
-export interface CreateClientInput {
-  name: string;
-  contact_name?: string;
-  email?: string;
-  phone?: string;
-  status: ClientStatus;
-  next_action_type?: ClientActionType;
-  next_action_date?: string;
-  next_action_notes?: string;
-  project_id?: string;
-  requirements?: string;
-  notes?: string;
-}
-
-export interface UpdateClientInput extends Partial<CreateClientInput> {
-  id: string;
 }

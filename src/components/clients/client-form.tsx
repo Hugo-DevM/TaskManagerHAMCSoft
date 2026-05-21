@@ -23,33 +23,51 @@ import {
 } from "@/components/ui/dialog";
 import { createClient, updateClient } from "@/app/(dashboard)/clientes/actions";
 import type {
+  Client,
   ClientStatus,
+  ClientPriority,
   ClientActionType,
-  ClientWithRelations,
-  Project,
+  ClientServiceInterest,
+  ClientLeadSource,
 } from "@/lib/types";
 
 interface ClientFormProps {
   open: boolean;
   onClose: () => void;
-  editClient?: ClientWithRelations | null;
-  projects: Project[];
+  editClient?: Client | null;
   userId: string;
 }
 
-export function ClientForm({ open, onClose, editClient, projects, userId }: ClientFormProps) {
+const DEFAULT_STATUS: ClientStatus = "prospecto";
+const DEFAULT_PRIORITY: ClientPriority = "medium";
+
+export function ClientForm({
+  open,
+  onClose,
+  editClient,
+  userId,
+}: ClientFormProps) {
   const router = useRouter();
 
-  const [name, setName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [status, setStatus] = useState<ClientStatus>("prospecto");
-  const [projectId, setProjectId] = useState<string>("");
-  const [nextActionType, setNextActionType] = useState<ClientActionType | "">("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [website, setWebsite] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [status, setStatus] = useState<ClientStatus>(DEFAULT_STATUS);
+  const [priority, setPriority] = useState<ClientPriority>(DEFAULT_PRIORITY);
+  const [estimatedValue, setEstimatedValue] = useState("");
+  const [serviceInterest, setServiceInterest] = useState<
+    ClientServiceInterest | ""
+  >("");
+  const [leadSource, setLeadSource] = useState<ClientLeadSource | "">("");
+  const [nextActionType, setNextActionType] = useState<ClientActionType | "">(
+    "",
+  );
   const [nextActionDate, setNextActionDate] = useState<string>("");
   const [nextActionNotes, setNextActionNotes] = useState("");
-  const [requirements, setRequirements] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,28 +76,38 @@ export function ClientForm({ open, onClose, editClient, projects, userId }: Clie
 
   useEffect(() => {
     if (editClient) {
-      setName(editClient.name);
+      setCompanyName(editClient.company_name ?? editClient.name ?? "");
       setContactName(editClient.contact_name ?? "");
       setEmail(editClient.email ?? "");
       setPhone(editClient.phone ?? "");
+      setWhatsapp(editClient.whatsapp ?? "");
+      setWebsite(editClient.website ?? "");
+      setIndustry(editClient.industry ?? "");
       setStatus(editClient.status);
-      setProjectId(editClient.project_id ?? "");
+      setPriority(editClient.priority ?? "medium");
+      setEstimatedValue(editClient.estimated_value?.toString() ?? "");
+      setServiceInterest(editClient.service_interest ?? "");
+      setLeadSource(editClient.lead_source ?? "");
       setNextActionType(editClient.next_action_type ?? "");
       setNextActionDate(editClient.next_action_date ?? "");
       setNextActionNotes(editClient.next_action_notes ?? "");
-      setRequirements(editClient.requirements ?? "");
       setNotes(editClient.notes ?? "");
     } else {
-      setName("");
+      setCompanyName("");
       setContactName("");
       setEmail("");
       setPhone("");
-      setStatus("prospecto");
-      setProjectId("");
+      setWhatsapp("");
+      setWebsite("");
+      setIndustry("");
+      setStatus(DEFAULT_STATUS);
+      setPriority(DEFAULT_PRIORITY);
+      setEstimatedValue("");
+      setServiceInterest("");
+      setLeadSource("");
       setNextActionType("");
-      setNextActionDate(new Date().toISOString().split("T")[0]);
+      setNextActionDate("");
       setNextActionNotes("");
-      setRequirements("");
       setNotes("");
     }
     setError(null);
@@ -87,24 +115,29 @@ export function ClientForm({ open, onClose, editClient, projects, userId }: Clie
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError("El nombre del cliente es requerido.");
+    if (!companyName.trim()) {
+      setError("El nombre de la empresa es requerido.");
       return;
     }
     setLoading(true);
     setError(null);
 
     const payload = {
-      name: name.trim(),
+      company_name: companyName.trim(),
       contact_name: contactName.trim() || undefined,
       email: email.trim() || undefined,
       phone: phone.trim() || undefined,
+      whatsapp: whatsapp.trim() || undefined,
+      website: website.trim() || undefined,
+      industry: industry.trim() || undefined,
       status,
+      priority,
+      estimated_value: estimatedValue ? parseFloat(estimatedValue) : undefined,
+      service_interest: (serviceInterest as ClientServiceInterest) || undefined,
+      lead_source: (leadSource as ClientLeadSource) || undefined,
       next_action_type: (nextActionType as ClientActionType) || undefined,
       next_action_date: nextActionDate || undefined,
       next_action_notes: nextActionNotes.trim() || undefined,
-      project_id: projectId || undefined,
-      requirements: requirements.trim() || undefined,
       notes: notes.trim() || undefined,
     };
 
@@ -125,7 +158,7 @@ export function ClientForm({ open, onClose, editClient, projects, userId }: Clie
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {editClient ? "Editar cliente" : "Nuevo cliente"}
@@ -139,221 +172,343 @@ export function ClientForm({ open, onClose, editClient, projects, userId }: Clie
             </div>
           )}
 
-          {/* Name */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="client-name">Nombre del cliente *</Label>
-              <span className={`text-xs ${name.length > 90 ? "text-yellow-400" : "text-muted-foreground"}`}>
-                {name.length}/100
-              </span>
-            </div>
-            <Input
-              id="client-name"
-              placeholder="Ej: Empresa Acme S.A."
-              value={name}
-              onChange={(e) => setName(e.target.value.slice(0, 100))}
-              autoFocus
-              maxLength={100}
-            />
-          </div>
+          {/* Section: Empresa */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Empresa
+            </p>
 
-          {/* Contact name & Email */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="client-contact">Persona de contacto</Label>
-              <Input
-                id="client-contact"
-                placeholder="Ej: Juan Pérez"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="client-email">Email</Label>
-              <Input
-                id="client-email"
-                type="email"
-                placeholder="correo@empresa.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Phone & Status */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="client-phone">Teléfono</Label>
-              <Input
-                id="client-phone"
-                placeholder="+54 11 1234-5678"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Estado</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as ClientStatus)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="prospecto">Prospecto</SelectItem>
-                  <SelectItem value="contactado">Contactado</SelectItem>
-                  <SelectItem value="en_negociacion">En negociación</SelectItem>
-                  <SelectItem value="propuesta_enviada">Propuesta enviada</SelectItem>
-                  <SelectItem value="cerrado">Cerrado</SelectItem>
-                  <SelectItem value="perdido">Perdido</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Linked project */}
-          <div className="space-y-1.5">
-            <Label>Proyecto vinculado</Label>
-            <Select
-              value={projectId || "none"}
-              onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sin proyecto" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sin proyecto</SelectItem>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Next action — type + date side by side */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Tipo de próxima acción</Label>
-              <Select
-                value={nextActionType || "none"}
-                onValueChange={(v) =>
-                  setNextActionType(v === "none" ? "" : (v as ClientActionType))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sin acción" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin acción</SelectItem>
-                  <SelectItem value="llamada">Llamada</SelectItem>
-                  <SelectItem value="reunion">Reunión</SelectItem>
-                  <SelectItem value="entrega">Entrega</SelectItem>
-                  <SelectItem value="seguimiento">Seguimiento</SelectItem>
-                  <SelectItem value="propuesta">Propuesta</SelectItem>
-                  <SelectItem value="otro">Otro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Fecha de la acción</Label>
-              <div className="relative">
-                <Input
-                  readOnly
-                  value={
-                    nextActionDate
-                      ? new Date(nextActionDate + "T00:00:00").toLocaleDateString("es-AR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })
-                      : ""
-                  }
-                  placeholder="Seleccionar fecha"
-                  className="cursor-pointer pr-16"
-                  onClick={() => dateInputRef.current?.showPicker()}
-                />
-                {nextActionDate && (
-                  <button
-                    type="button"
-                    onClick={() => setNextActionDate("")}
-                    className="absolute right-8 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    title="Quitar fecha"
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5 col-span-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="company-name">Nombre de la empresa *</Label>
+                  <span
+                    className={`text-xs ${companyName.length > 90 ? "text-yellow-400" : "text-muted-foreground"}`}
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => dateInputRef.current?.showPicker()}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  title="Abrir calendario"
+                    {companyName.length}/100
+                  </span>
+                </div>
+                <Input
+                  id="company-name"
+                  placeholder="Ej: Acme S.A., Juan García"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value.slice(0, 100))}
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="industry">Industria / Rubro</Label>
+                <Input
+                  id="industry"
+                  placeholder="Ej: Retail, Gastronomía..."
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Servicio de interés</Label>
+                <Select
+                  value={serviceInterest || "none"}
+                  onValueChange={(v) =>
+                    setServiceInterest(
+                      v === "none" ? "" : (v as ClientServiceInterest),
+                    )
+                  }
                 >
-                  <CalendarDays className="w-4 h-4" />
-                </button>
-                <input
-                  ref={dateInputRef}
-                  type="date"
-                  value={nextActionDate}
-                  min={new Date().toISOString().split("T")[0]}
-                  onChange={(e) => setNextActionDate(e.target.value)}
-                  className="sr-only"
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin especificar</SelectItem>
+                    <SelectItem value="landing_page">Landing Page</SelectItem>
+                    <SelectItem value="ecommerce">E-commerce</SelectItem>
+                    <SelectItem value="sistema_pos">Sistema POS</SelectItem>
+                    <SelectItem value="crm">CRM</SelectItem>
+                    <SelectItem value="automatizacion">
+                      Automatización
+                    </SelectItem>
+                    <SelectItem value="branding">Branding</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Fuente del lead</Label>
+                <Select
+                  value={leadSource || "none"}
+                  onValueChange={(v) =>
+                    setLeadSource(v === "none" ? "" : (v as ClientLeadSource))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin especificar</SelectItem>
+                    <SelectItem value="facebook">Facebook</SelectItem>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="tiktok">TikTok</SelectItem>
+                    <SelectItem value="referido">Referido</SelectItem>
+                    <SelectItem value="web">Web</SelectItem>
+                    <SelectItem value="manual">Manual / Directo</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="website">Sitio web</Label>
+                <Input
+                  id="website"
+                  placeholder="https://empresa.com"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
                 />
               </div>
             </div>
           </div>
 
-          {/* Next action notes */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="client-action-notes">Notas de la acción</Label>
-              <span className={`text-xs ${nextActionNotes.length > 180 ? "text-yellow-400" : "text-muted-foreground"}`}>
-                {nextActionNotes.length}/200
-              </span>
+          {/* Section: Contacto */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Contacto
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="contact-name">Persona de contacto</Label>
+                <Input
+                  id="contact-name"
+                  placeholder="Ej: Juan Pérez"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="client-email">Email</Label>
+                <Input
+                  id="client-email"
+                  type="email"
+                  placeholder="correo@empresa.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="client-phone">Teléfono</Label>
+                <Input
+                  id="client-phone"
+                  placeholder="+54 11 1234-5678"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="client-whatsapp">WhatsApp</Label>
+                <Input
+                  id="client-whatsapp"
+                  placeholder="+54 11 1234-5678"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                />
+              </div>
             </div>
-            <Textarea
-              id="client-action-notes"
-              placeholder="Qué se acordó, qué hay que preparar..."
-              value={nextActionNotes}
-              onChange={(e) => setNextActionNotes(e.target.value.slice(0, 200))}
-              rows={2}
-              maxLength={200}
-            />
           </div>
 
-          {/* Requirements */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="client-requirements">Requerimientos / Lo que necesita</Label>
-              <span className={`text-xs ${requirements.length > 450 ? "text-yellow-400" : "text-muted-foreground"}`}>
-                {requirements.length}/500
-              </span>
+          {/* Section: Pipeline */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Pipeline comercial
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label>Estado</Label>
+                <Select
+                  value={status}
+                  onValueChange={(v) => setStatus(v as ClientStatus)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="prospecto">Prospecto</SelectItem>
+                    <SelectItem value="contactado">Contactado</SelectItem>
+                    <SelectItem value="reunion_agendada">
+                      Reunión agendada
+                    </SelectItem>
+                    <SelectItem value="en_negociacion">
+                      En negociación
+                    </SelectItem>
+                    <SelectItem value="propuesta_enviada">
+                      Propuesta enviada
+                    </SelectItem>
+                    <SelectItem value="esperando_respuesta">
+                      Esperando respuesta
+                    </SelectItem>
+                    <SelectItem value="cerrado_ganado">
+                      Cerrado ganado
+                    </SelectItem>
+                    <SelectItem value="cerrado_perdido">
+                      Cerrado perdido
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Prioridad</Label>
+                <Select
+                  value={priority}
+                  onValueChange={(v) => setPriority(v as ClientPriority)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">Alta</SelectItem>
+                    <SelectItem value="medium">Media</SelectItem>
+                    <SelectItem value="low">Baja</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="estimated-value">
+                  Valor estimado del contrato
+                </Label>
+                <Input
+                  id="estimated-value"
+                  type="number"
+                  placeholder="Ej: 15000"
+                  value={estimatedValue}
+                  onChange={(e) => setEstimatedValue(e.target.value)}
+                  min={0}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  ¿Cuánto pagaría este cliente si cierra? Sirve para calcular el
+                  valor total del pipeline.
+                </p>
+              </div>
             </div>
-            <Textarea
-              id="client-requirements"
-              placeholder="Descripción de lo que el cliente necesita o pidió..."
-              value={requirements}
-              onChange={(e) => setRequirements(e.target.value.slice(0, 500))}
-              rows={3}
-              maxLength={500}
-            />
           </div>
 
-          {/* Internal notes */}
+          {/* Section: Próxima acción */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Próxima acción
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Tipo de acción</Label>
+                <Select
+                  value={nextActionType || "none"}
+                  onValueChange={(v) =>
+                    setNextActionType(
+                      v === "none" ? "" : (v as ClientActionType),
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin acción" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin acción</SelectItem>
+                    <SelectItem value="llamada">Llamada</SelectItem>
+                    <SelectItem value="reunion">Reunión</SelectItem>
+                    <SelectItem value="seguimiento">Seguimiento</SelectItem>
+                    <SelectItem value="propuesta">Propuesta</SelectItem>
+                    <SelectItem value="entrega">Entrega</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Fecha de la acción</Label>
+                <div className="relative">
+                  <Input
+                    readOnly
+                    value={
+                      nextActionDate
+                        ? new Date(
+                            nextActionDate + "T00:00:00",
+                          ).toLocaleDateString("es-AR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })
+                        : ""
+                    }
+                    placeholder="Seleccionar fecha"
+                    className="cursor-pointer pr-16"
+                    onClick={() => dateInputRef.current?.showPicker()}
+                  />
+                  {nextActionDate && (
+                    <button
+                      type="button"
+                      onClick={() => setNextActionDate("")}
+                      className="absolute right-8 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => dateInputRef.current?.showPicker()}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <CalendarDays className="w-4 h-4" />
+                  </button>
+                  <input
+                    ref={dateInputRef}
+                    type="date"
+                    value={nextActionDate}
+                    onChange={(e) => setNextActionDate(e.target.value)}
+                    className="sr-only"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="action-notes">Notas de la acción</Label>
+                <span
+                  className={`text-xs ${nextActionNotes.length > 180 ? "text-yellow-400" : "text-muted-foreground"}`}
+                >
+                  {nextActionNotes.length}/200
+                </span>
+              </div>
+              <Textarea
+                id="action-notes"
+                placeholder="Qué se acordó, qué hay que preparar..."
+                value={nextActionNotes}
+                onChange={(e) =>
+                  setNextActionNotes(e.target.value.slice(0, 200))
+                }
+                rows={2}
+              />
+            </div>
+          </div>
+
+          {/* Section: Notas internas */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="client-notes">Notas internas</Label>
-              <span className={`text-xs ${notes.length > 270 ? "text-yellow-400" : "text-muted-foreground"}`}>
-                {notes.length}/300
+              <span
+                className={`text-xs ${notes.length > 450 ? "text-yellow-400" : "text-muted-foreground"}`}
+              >
+                {notes.length}/500
               </span>
             </div>
             <Textarea
               id="client-notes"
-              placeholder="Observaciones internas del equipo..."
+              placeholder="Observaciones del equipo, contexto de negocio..."
               value={notes}
-              onChange={(e) => setNotes(e.target.value.slice(0, 300))}
-              rows={2}
-              maxLength={300}
+              onChange={(e) => setNotes(e.target.value.slice(0, 500))}
+              rows={3}
             />
           </div>
 
@@ -370,8 +525,8 @@ export function ClientForm({ open, onClose, editClient, projects, userId }: Clie
               {loading
                 ? "Guardando..."
                 : editClient
-                ? "Guardar cambios"
-                : "Crear cliente"}
+                  ? "Guardar cambios"
+                  : "Crear cliente"}
             </Button>
           </DialogFooter>
         </form>

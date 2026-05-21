@@ -49,7 +49,7 @@ export function useClients(): UseClientsReturn {
         );
         const query = supabase
           .from("clients")
-          .select(`*, project:projects(id, name, status)`)
+          .select("*")
           .order("created_at", { ascending: false });
 
         const { data, error: fetchError } = await Promise.race([query, timeout]);
@@ -135,16 +135,22 @@ export function useClients(): UseClientsReturn {
         .from("clients")
         .insert([
           {
-            name: input.name,
+            company_name: input.company_name,
+            name: input.company_name,
             contact_name: input.contact_name ?? null,
             email: input.email ?? null,
             phone: input.phone ?? null,
+            whatsapp: input.whatsapp ?? null,
+            website: input.website ?? null,
+            industry: input.industry ?? null,
             status: input.status,
+            priority: input.priority ?? "medium",
+            estimated_value: input.estimated_value ?? null,
+            service_interest: input.service_interest ?? null,
+            lead_source: input.lead_source ?? null,
             next_action_type: input.next_action_type ?? null,
             next_action_date: input.next_action_date ?? null,
             next_action_notes: input.next_action_notes ?? null,
-            project_id: input.project_id ?? null,
-            requirements: input.requirements ?? null,
             notes: input.notes ?? null,
             created_by: input.created_by,
           },
@@ -166,15 +172,7 @@ export function useClients(): UseClientsReturn {
     async (input: UpdateClientInput): Promise<Client | null> => {
       const { id, ...rest } = input;
       const patch: Record<string, unknown> = { ...rest };
-      if ("contact_name" in input) patch.contact_name = input.contact_name ?? null;
-      if ("email" in input) patch.email = input.email ?? null;
-      if ("phone" in input) patch.phone = input.phone ?? null;
-      if ("next_action_type" in input) patch.next_action_type = input.next_action_type ?? null;
-      if ("next_action_date" in input) patch.next_action_date = input.next_action_date ?? null;
-      if ("next_action_notes" in input) patch.next_action_notes = input.next_action_notes ?? null;
-      if ("project_id" in input) patch.project_id = input.project_id ?? null;
-      if ("requirements" in input) patch.requirements = input.requirements ?? null;
-      if ("notes" in input) patch.notes = input.notes ?? null;
+      if (input.company_name) patch.name = input.company_name;
 
       const { data, error } = await supabase
         .from("clients")

@@ -67,9 +67,9 @@ export function Sidebar() {
   return (
     <aside className="flex flex-col w-60 h-full bg-card border-r border-border">
       {/* Logo */}
-      <div className="flex items-center justify-center gap-2 px-4 border-b border-border" style={{ height: '73px' }}>
-        <Image src="/logo-icon.png" alt="HAMCSoft" width={22} height={22} className="shrink-0" />
-        <Image src="/logo-letras.png" alt="HAMCSoft" width={90} height={20} className="shrink-0" />
+      <div className="flex items-center justify-center gap-2 px-4 border-b border-border" style={{ height: '98px' }}>
+        <Image src="/logo-icon.png" alt="HAMCSoft" width={34} height={34} className="shrink-0" />
+        <Image src="/logo-letras.png" alt="HAMCSoft" width={115} height={26} className="shrink-0" />
       </div>
 
       {/* Navigation */}

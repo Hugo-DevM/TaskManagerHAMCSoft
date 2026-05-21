@@ -67,7 +67,7 @@ export function Sidebar() {
   return (
     <aside className="flex flex-col w-60 h-full bg-card border-r border-border">
       {/* Logo */}
-      <div className="flex items-center justify-center gap-2 px-4 py-2.5 border-b border-border">
+      <div className="flex items-center justify-center gap-2 px-4 py-6 border-b border-border">
         <Image src="/logo-icon.png" alt="HAMCSoft" width={22} height={22} className="shrink-0" />
         <Image src="/logo-letras.png" alt="HAMCSoft" width={90} height={20} className="shrink-0" />
       </div>
